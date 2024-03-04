@@ -1,0 +1,322 @@
+---
+title: "Cyclistic Casestudy"
+author: "Abhishek"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+---
+
+#=====================
+# STEP 1: COLLECT DATA
+#=====================
+### # Upload datasets (csv files) here
+
+jan_2023 <- read.csv("202301-divvy-tripdata.csv")
+feb_2023 <- read.csv("202302-divvy-tripdata.csv")
+mar_2023 <- read.csv("202303-divvy-tripdata.csv")
+apr_2023 <- read.csv("202304-divvy-tripdata.csv")
+may_2023 <- read.csv("202305-divvy-tripdata.csv")
+jun_2023 <- read.csv("202306-divvy-tripdata.csv")
+jul_2023 <- read.csv("202307-divvy-tripdata.csv")
+aug_2023 <- read.csv("202308-divvy-tripdata.csv")
+sep_2023 <- read.csv("202309-divvy-tripdata.csv")
+oct_2023 <- read.csv("202310-divvy-tripdata.csv")
+nov_2023 <- read.csv("202311-divvy-tripdata.csv")
+dec_2023 <- read.csv("202312-divvy-tripdata.csv")
+
+### Assuming you've already read the files into separate data frames
+cyclist_data_2023 <- bind_rows(jan_2023, feb_2023, mar_2023, apr_2023, may_2023, jun_2023, jul_2023, aug_2023, sep_2023, oct_2023, nov_2023, dec_2023)
+
+
+### Load required libraries
+library(dplyr)
+install.packages(dpylr)
+
+### Load the data
+cyclist_data_2023 <- cyclist_data_2023
+
+#=====================
+# STEP 2: CLEAN DATA
+#=====================
+
+# Step 1: Load Libraries and Data
+
+# Load required libraries
+library(dplyr)
+library(lubridate)
+
+
+
+# Check the data types and data headers
+head(cyclist_data_2023)
+
+
+# Rename columns
+cyclist_data_2023 <- cyclist_data_2023 %>% 
+  rename(member_type = member_casual)
+  rename(bike_type = rideable_type)
+  
+
+# Install and load the lubridate package if not already installed
+# install.packages("lubridate")
+install.packages("lubridate")
+library(lubridate)
+
+
+# Assuming your date columns are in the format "%d-%m-%Y %H:%M" 
+cyclist_data_2023$started_at <- dmy_hms(cyclist_data_2023$started_at)
+cyclist_data_2023$ended_at <- dmy_hms(cyclist_data_2023$ended_at)
+
+# Calculate the time difference in minutes
+cyclist_data_2023 <- cyclist_data_2023 %>%
+  mutate(ride_duration = as.numeric(difftime(ended_at, started_at, units = "mins")))
+
+
+# Extract the weekday and create a new column 'weekday'
+cyclist_data_2023$weekday <- wday(cyclist_data_2023$started_at, label = TRUE)
+
+# Convert the values in the 'weekday' column to uppercase
+cyclist_data_2023$weekday <- toupper(cyclist_data_2023$weekday)
+
+# Check data types
+str(cyclist_data_2023)
+
+
+# Remove specified columns
+cyclist_data_2023 <- cyclist_data_2023 %>%
+  select(-start_station_id, -end_station_id, -start_lat, -start_lng, -end_lat, -end_lng)
+
+# View your dataset
+View(cyclist_data_2023)
+
+
+# Check for duplicates in the ride_id column
+print(sum(duplicated(cyclist_data_2023$ride_id))
+
+
+----------------------
+# FINDING OUTLIERS
+----------------------
+
+# summary of ride_length to check for outliers and quadrants
+print(summary(cyclist_data_2023$ride_duration))
+
+# Calculate the first and third quartiles
+Q1 <- quantile(cyclist_data_2023$ride_duration, 0.25)
+Q3 <- quantile(cyclist_data_2023$ride_duration, 0.75)
+
+# Calculate the interquartile range (IQR)
+IQR <- Q3 - Q1
+
+# Define the lower and upper bounds for outliers
+lower_bound <- Q1 - 1.5 * IQR
+upper_bound <- Q3 + 1.5 * IQR
+
+# Filter the data to remove outliers
+cleaned_data <- cyclist_data_2023[cyclist_data_2023$ride_duration >= lower_bound &
+                                  cyclist_data_2023$ride_duration <= upper_bound, ]
+                                  
+# Round off the decimals to 2 digits for ride_duration
+cleaned_data$ride_duration <- round(cleaned_data$ride_duration,2)
+
+# assigning values of cleaned data to cyclist_data_2023
+cyclist_data_2023 <- cleaned_data
+
+
+# Extract year, month, and date from started_at column and make new columns for each
+cyclist_data_2023$year <- lubridate::year(cyclist_data_2023$started_at)
+cyclist_data_2023$month <- lubridate::month(cyclist_data_2023$started_at)
+cyclist_data_2023$date <- lubridate::day(cyclist_data_2023$started_at)
+
+# Assuming cyclist_data_2023$month contains values from 1 to 12
+cyclist_data_2023$month <- month.name[cyclist_data_2023$month]
+
+# Replace empty strings with NA in all columns of the dataframe
+cyclist_data_2023[cyclist_data_2023 == ""] <- NA
+
+
+# find the count of blanks in each column
+print(sum(is.na(cyclist_data_2023$start_station_name)))
+
+# Remove rows with missing values
+cyclist_data_2023 <- na.omit(cyclist_data_2023)
+
+# print the  stats of the dataframe cyclistic_data_2023
+print(summary(cyclist_data_2023$ride_duration))
+
+# Filter out rows where ride_duration is less than 1 minute
+cleaned_data <- cyclist_data_2023[cyclist_data_2023$ride_duration >= 1, ]
+
+# Check the dimensions of the cleaned data
+dim(cleaned_data)
+
+# impersonating values of cleaned data to cyclist_data_2023
+cyclist_data_2023 <- cleaned_data
+
+
+
+# load file in local directory
+write.csv(cyclist_data_2023, file = "C:/Users/Employee/Documents/CapstoneProject_cyclistic/Cyclist_Data_xls_2023/cyclistic_2023_cleaned_data/cyclist_data_2023.csv", row.names = TRUE)
+
+
+
+
+==============================================
+# Step 3:  Analysis Phase
+==============================================
+
+# Calculate descriptive statistics for ride_duration
+summary(cyclist_data_2023$ride_duration)
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#   1.00    5.55    9.20   11.21   15.08   34.17 
+
+# Count of member types
+print(table(cyclist_data_2023$member_type))
+# casual  member 
+# 1267861 2627309 
+
+# Count of rides for each member type
+aggregate(cyclist_data_2023$ride_duration ~ cyclist_data_2023$member_type, FUN = length)
+#  cyclist_data_2023$member_type cyclist_data_2023$ride_duration
+# 1                        casual                         1267861
+# 2                        member                         2627309
+
+# Compare ride durations between member types
+aggregate(cyclist_data_2023$ride_duration ~ cyclist_data_2023$member_type, FUN = mean)
+#  cyclist_data_2023$member_type cyclist_data_2023$ride_duration
+# 1                        casual                        12.84963
+# 2                        member                        10.41804
+
+aggregate(cyclist_data_2023$ride_duration ~ cyclist_data_2023$member_type, FUN = median)
+#  cyclist_data_2023$member_type cyclist_data_2023$ride_duration
+# 1                        casual                           10.95
+# 2                        member                            8.45
+
+aggregate(cyclist_data_2023$ride_duration ~ cyclist_data_2023$member_type, FUN = max)
+#  cyclist_data_2023$member_type cyclist_data_2023$ride_duration
+# 1                        casual                           34.17
+# 2                        member                           34.17
+
+aggregate(cyclist_data_2023$ride_duration ~ cyclist_data_2023$member_type, FUN = min)
+#  cyclist_data_2023$member_type cyclist_data_2023$ride_duration
+# 1                        casual                               1
+# 2                        member                               1
+
+
+# See the average ride duration by each day for members vs casual users
+aggregate(cyclist_data_2023$ride_duration ~ cyclist_data_2023$member_type + cyclist_data_2023$weekday, FUN = mean)
+
+# Total ride duration based on member type
+aggregate(cyclist_data_2023$ride_duration ~ cyclist_data_2023$member_type, FUN = sum)
+#  cyclist_data_2023$member_type cyclist_data_2023$ride_duration
+# 1                        casual                        16291548
+# 2                        member                        27371400
+
+# Count of rides based on member types on each weekday
+aggregate(cyclist_data_2023$ride_duration ~ cyclist_data_2023$member_type + cyclist_data_2023$weekday, FUN = length)
+
+
+
+# Create a cross-tabulation of ride durations by member type and weekday
+ride_duration_table <- xtabs(ride_duration ~ member_type + weekday, data = cyclist_data_2023)
+
+# Print the table
+print(ride_duration_table)
+
+
+
+
+
+=====================================================
+# Observations and Patterns in Cyclist Data Analysis
+=====================================================
+
+
+### Findings from Cyclist Data Analysis
+
+#### Business Task:
+- Analyze cyclist data for insights into rider behavior and usage patterns.
+
+#### Observations:
+1. **Count of Member Types:**
+   - The dataset contains **1,267,861** records for casual riders and **2,627,309** records for member riders.
+
+2. **Total Duration by Member Type:**
+   - Total ride duration for casual riders: **16,291,548** minutes.
+   - Total ride duration for member riders: **27,371,400** minutes.
+
+3. **Mean Total Duration by Member Type:**
+   - The mean total ride duration for casual riders is approximately **12.85** minutes.
+   - The mean total ride duration for member riders is approximately **10.42** minutes.
+
+4. **Average Ride Durations Across Weekdays:**
+   - Average ride durations vary across weekdays, with higher durations observed during weekends.
+
+5. **Count of Rides by Member Type and Weekday:**
+   - The count of rides for each member type varies across weekdays, reflecting different usage patterns among casual riders and members.
+
+#### Insights:
+- Casual riders contribute a significant portion of the dataset, indicating a diverse user base.
+- Member riders, while fewer in number, contribute substantially to the total ride duration, highlighting their frequent use of the cycling service.
+- The higher mean total ride duration for casual riders may indicate potential areas for service improvement, such as encouraging longer rides or enhancing user engagement.
+- Member riders, despite shorter mean ride durations, represent a consistent user base contributing to the service's overall usage metrics.
+- Variations in average ride durations across weekdays suggest potential differences in user behaviors and preferences throughout the week.
+-Casual members have the highest mean ride duration on Sundays.
+
+#### Conclusion:
+**The analysis provides valuable insights into rider behavior and usage patterns, which can inform strategic decisions aimed at optimizing the cycling service and enhancing user experience.**
+
+
+- Usage Patterns: Casual riders tend to have longer ride durations compared to annual members, suggesting different usage behaviors.
+
+- Marketing Strategy: To convert casual riders into annual members, Cyclistic should focus on promoting the benefits of annual memberships, such as cost savings and convenience.
+
+- Targeted Campaigns: Tailored marketing campaigns could highlight the advantages of annual memberships, including exclusive discounts, special offers, and access to additional features.
+
+- User Experience: Improving the user experience, such as offering seamless sign-up processes and enhancing bike availability, can encourage casual riders to transition to annual memberships.
+
+
+
+
+
+
+
+
+
+==============================================
+# Step 3:  Share Phase
+==============================================
+
+# Load necessary libraries
+library(ggplot2)
+
+# Visualization 1: Comparison of Ride Durations by Weekday and Member Type
+ggplot(cyclist_data_2023, aes(x = weekday, y = ride_duration, fill = member_type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Comparison of Ride Durations by Weekday and Member Type",
+       x = "Weekday",
+       y = "Ride Duration (minutes)",
+       fill = "Member Type") +
+  theme_minimal()
+
+# Visualization 2: Total Ride Duration Trends by Date and Member Type
+ggplot(cyclist_data_2023, aes(x = date, y = ride_duration, color = member_type)) +
+  geom_line() +
+  labs(title = "Total Ride Duration Trends by Date and Member Type",
+       x = "Date",
+       y = "Total Ride Duration (minutes)",
+       color = "Member Type") +
+  theme_minimal()
+
+# Visualization 3: Membership Distribution
+ggplot(cyclist_data_2023, aes(x = "", fill = member_type)) +
+  geom_bar(width = 1) +
+  labs(title = "Membership Distribution",
+       fill = "Member Type") +
+  coord_polar("y") +
+  theme_void()
+
+# Comments:
+# - Visualization 1 shows the comparison of ride durations between casual riders and annual members across different weekdays.
+# - Visualization 2 illustrates the trend of total ride durations over time, segmented by user type (casual vs. annual).
+# - Visualization 3 presents the distribution of user types (casual vs. annual) within the Cyclistic bike-share program.
